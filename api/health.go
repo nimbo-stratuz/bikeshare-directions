@@ -13,6 +13,7 @@ type HealthCheckResponse struct {
 	Checks  []SubHealthCheck `json:"checks"`
 }
 
+// Render sets HTTP Status to 503 if outcome equals DOWN
 func (hcr *HealthCheckResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	if hcr.Outcome == stateDown {
 		render.Status(r, http.StatusServiceUnavailable)

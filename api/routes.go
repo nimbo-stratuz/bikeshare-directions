@@ -44,6 +44,7 @@ func findDirections(w http.ResponseWriter, r *http.Request) {
 	render.Render(w, r, &route)
 }
 
+// ErrInvalidRequest creates an ErrResponse for 400 Bad Request
 func ErrInvalidRequest(err error) render.Renderer {
 	return &models.ErrResponse{
 		StatusCode: 400,
