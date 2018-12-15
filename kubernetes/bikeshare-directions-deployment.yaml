@@ -13,11 +13,11 @@ spec:
         app: bikeshare-directions
     spec:
       containers:
-      - image: nimbostratuz/bikeshare-directions:0.2
+      - image: nimbostratuz/bikeshare-directions:0.3
         name: bikeshare-directions
         env:
         - name: PORT
-          value: 8080
+          value: '8080'
         - name: MAPS_API_KEY
           valueFrom:
             secretKeyRef:
