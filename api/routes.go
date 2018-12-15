@@ -24,9 +24,7 @@ func Routes() *chi.Mux {
 
 	r.Route("/health", func(r chi.Router) {
 		r.Get("/", HealthCheck)
-		r.Head("/", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		})
+		r.Head("/", HealthCheck)
 	})
 
 	return r

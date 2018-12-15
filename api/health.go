@@ -1,16 +1,24 @@
 package api
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
 	"os"
+
+	"github.com/go-chi/render"
 )
 
 // HealthCheckResponse is a microprofile-like /health response
 type HealthCheckResponse struct {
 	Outcome string           `json:"outcome"`
 	Checks  []SubHealthCheck `json:"checks"`
+}
+
+func (hcr *HealthCheckResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	if hcr.Outcome == stateDown {
+		render.Status(r, http.StatusServiceUnavailable)
+	}
+
+	return nil
 }
 
 // SubHealthCheck represents underlying health checks
@@ -31,7 +39,7 @@ const (
 // HealthCheck is a basic Healthcheck
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	checks := []SubHealthCheck{
-		mapQuestHealthCheck(),
+		doMapQuestHealthCheck(),
 	}
 
 	state := stateUp
@@ -48,43 +56,41 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		Checks:  checks,
 	}
 
-	json, err := json.Marshal(hc)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	if state == stateDown {
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(json)
+	render.Render(w, r, &hc)
 }
 
-func mapQuestHealthCheck() SubHealthCheck {
-
-	req, err := http.NewRequest("OPTIONS", url, nil)
-	if err != nil {
-		log.Panicln("Couldn't create request")
-	}
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Panicln("Couldn't do OPTIONS to the maps API", err.Error())
-	}
-	defer resp.Body.Close()
+func mapQuestHealthCheck(isUp bool) SubHealthCheck {
 
 	var state string
-	log.Println(resp.StatusCode)
-	if resp.StatusCode == 200 {
+	if isUp {
 		state = stateUp
 	} else {
 		state = stateDown
 	}
 
-	return (SubHealthCheck{
+	return SubHealthCheck{
 		Name:  "MapQuestHealthCheck",
 		State: state,
-	})
+	}
+}
+
+func doMapQuestHealthCheck() SubHealthCheck {
+
+	req, err := http.NewRequest("OPTIONS", url, nil)
+	if err != nil {
+		return mapQuestHealthCheck(false)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return mapQuestHealthCheck(false)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return mapQuestHealthCheck(false)
+	}
+
+	return mapQuestHealthCheck(true)
 }
