@@ -1,34 +1,35 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/api"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
 )
 
 // Routes for /v1
-func Routes() *mux.Router {
-	r := mux.NewRouter()
+func Routes() *chi.Mux {
+	r := chi.NewRouter()
 
-	r.Handle("/directions", api.Routes())
+	r.Use(
+		render.SetContentType(render.ContentTypeJSON),
+
+		middleware.Logger,
+		middleware.RequestID,
+	)
+
+	r.Mount("/", api.Routes())
 
 	return r
 }
 
 func main() {
-	r := mux.NewRouter()
+	r := Routes()
 
-	r.HandleFunc("/health", HealthCheck).Methods("GET")
-
-	r.Handle("/v1", Routes())
-
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "200 OK")
-	}).Methods("GET")
-
-	http.ListenAndServe(":"+os.Getenv("PORT"), r)
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), r))
 }
