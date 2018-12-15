@@ -1,8 +1,8 @@
 package api
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -45,7 +45,12 @@ func Routes() *chi.Mux {
 		})
 	})
 
-	r.Get("/health", HealthCheck)
+	r.Route("/health", func(r chi.Router) {
+		r.Get("/", HealthCheck)
+		r.Head("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+	})
 
 	return r
 }
