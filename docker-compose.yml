@@ -1,9 +1,11 @@
 version: '3.7'
 
 services:
-
   bikeshare-directions.service:
     build: .
     ports:
-    - 8080:8080
-
+      - 8080:8080
+    environment:
+      PORT: 8080
+    env_file:
+      - docker-compose.env

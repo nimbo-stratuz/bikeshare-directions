@@ -54,14 +54,12 @@ func DirectionsFromTo(from string, to string) models.Directions {
 
 	err = json.Unmarshal(respBody, &route)
 	if err != nil {
-		// log.Panicln("could not unmarshall json response")
+		log.Panicln("could not unmarshall json response")
 	}
 
 	if route.Info.Statuscode != 0 {
-		// log.Panicln("API error {}: {}", route.Info.Statuscode, route.Info.Messages)
+		log.Panicln("API error {}: {}", route.Info.Statuscode, route.Info.Messages)
 	}
 
 	return route
 }
-
-// MapQuest key: z752tRtDcTpb1tDwMcPnis9wESwuXOe1
