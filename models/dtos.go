@@ -1,10 +1,37 @@
 package models
 
+import (
+	"errors"
+	"net/http"
+
+	"github.com/go-chi/render"
+)
+
 type userID string
 
+type ErrResponse struct {
+	StatusCode int    `json:"status"`            // user-level status message
+	ErrorText  string `json:"message,omitempty"` // application-level error message, for debugging
+}
+
+func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	render.Status(r, e.StatusCode)
+	return nil
+}
+
 type FromTo struct {
-	From string `json:"from"`
-	To   string `json:"to"`
+	From string `json:"from,omitempty"`
+	To   string `json:"to,omitempty"`
+}
+
+func (ft *FromTo) Bind(r *http.Request) error {
+	if ft.From == "" {
+		return errors.New("Missing 'from' (start) field")
+	}
+	if ft.To == "" {
+		return errors.New("Missing 'to' (destination) field")
+	}
+	return nil
 }
 
 type DirectionsRequest struct {
@@ -170,4 +197,8 @@ type Directions struct {
 		Statuscode int           `json:"statuscode"`
 		Messages   []interface{} `json:"messages"`
 	} `json:"info"`
+}
+
+func (dirs *Directions) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }

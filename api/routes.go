@@ -1,11 +1,9 @@
 package api
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
+
+	"github.com/go-chi/render"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/models"
 
@@ -20,28 +18,7 @@ func Routes() *chi.Mux {
 	r.Route("/v1", func(r chi.Router) {
 
 		r.Route("/directions", func(r chi.Router) {
-
-			r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-
-				body, err := ioutil.ReadAll(r.Body)
-				if err != nil {
-					log.Panicln("Canot read request body")
-				}
-
-				fromTo := models.FromTo{}
-
-				unmarshallErr := json.Unmarshal(body, &fromTo)
-				if unmarshallErr != nil {
-					log.Panicln("Cannot unmarshal json")
-				}
-
-				fmt.Printf("%v\n", fromTo)
-
-				route := services.DirectionsFromTo(fromTo.From, fromTo.To)
-
-				json.NewEncoder(w).Encode(route)
-			})
-
+			r.Post("/", findDirections)
 		})
 	})
 
@@ -53,4 +30,25 @@ func Routes() *chi.Mux {
 	})
 
 	return r
+}
+
+func findDirections(w http.ResponseWriter, r *http.Request) {
+
+	fromTo := &models.FromTo{}
+
+	if err := render.Bind(r, fromTo); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	route := services.DirectionsFromTo(fromTo.From, fromTo.To)
+
+	render.Render(w, r, &route)
+}
+
+func ErrInvalidRequest(err error) render.Renderer {
+	return &models.ErrResponse{
+		StatusCode: 400,
+		ErrorText:  "Invalid request",
+	}
 }

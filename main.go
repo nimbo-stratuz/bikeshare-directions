@@ -19,8 +19,8 @@ func Routes() *chi.Mux {
 	r.Use(
 		render.SetContentType(render.ContentTypeJSON),
 
-		middleware.Logger,
 		middleware.RequestID,
+		middleware.Logger,
 	)
 
 	r.Mount("/", api.Routes())
