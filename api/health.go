@@ -53,6 +53,10 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
+	if state == stateDown {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
 }
