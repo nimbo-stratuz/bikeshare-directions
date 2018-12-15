@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	url = "http://www.mapquestapi.com/directions/v2/route?key=" + os.Getenv("MAPS_API_KEY")
+	url = "https://www.mapquestapi.com/directions/v2/route?key=" + os.Getenv("MAPS_API_KEY")
 )
 
 // DirectionsFromTo ...
