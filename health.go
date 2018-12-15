@@ -22,10 +22,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	hc := HealthCheckResponse{
 		Outcome: "OK",
 		Checks: []SubHealthCheck{
-			SubHealthCheck{
-				Name:  "GoogleMapsHealthCheck",
-				State: "UP",
-			},
+			googleMapsHealthCheck(),
 		},
 	}
 
@@ -36,4 +33,11 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(json)
+}
+
+func googleMapsHealthCheck() SubHealthCheck {
+	return (SubHealthCheck{
+		Name:  "GoogleMapsHealthCheck",
+		State: "UP",
+	})
 }
