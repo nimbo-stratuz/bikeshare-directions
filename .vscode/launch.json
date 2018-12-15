@@ -8,8 +8,7 @@
       "mode": "auto",
       "program": "${workspaceFolder}/main.go",
       "env": {
-        "PORT": 8080,
-        "MAPS_API_KEY": "z752tRtDcTpb1tDwMcPnis9wESwuXOe1"
+        "PORT": 8088,
       },
       "args": []
     }
