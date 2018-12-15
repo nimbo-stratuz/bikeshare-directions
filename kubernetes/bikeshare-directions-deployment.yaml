@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bikeshare-directions
+  name: bikeshare-directions-deployment
 spec:
   replicas: 1
   selector:
@@ -13,7 +13,7 @@ spec:
         app: bikeshare-directions
     spec:
       containers:
-      - image: nimbostratuz/bikeshare-directions:0.3
+      - image: nimbostratuz/bikeshare-directions:0.5
         name: bikeshare-directions
         env:
         - name: PORT
@@ -29,12 +29,12 @@ spec:
           name: server
           protocol: TCP
 
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: server
-          initialDelaySeconds: 20
-          periodSeconds: 3
+        # livenessProbe:
+        #   httpGet:
+        #     path: /health
+        #     port: server
+        #   initialDelaySeconds: 20
+        #   periodSeconds: 3
 
 
 ---
