@@ -3,27 +3,19 @@ package models
 import (
 	"errors"
 	"net/http"
-
-	"github.com/go-chi/render"
 )
 
-type userID string
-
-type ErrResponse struct {
-	StatusCode int    `json:"status"`            // user-level status message
-	ErrorText  string `json:"message,omitempty"` // application-level error message, for debugging
-}
-
-func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	render.Status(r, e.StatusCode)
-	return nil
-}
-
+// FromTo represents incoming requests to /v1/directions. Example:
+// {
+// 	 "from": "Ljubljana, Faculty of Computer and Information Science",
+// 	 "to": "Medvode"
+// }
 type FromTo struct {
 	From string `json:"from,omitempty"`
 	To   string `json:"to,omitempty"`
 }
 
+// Bind ensures both fields are set in a FromTo
 func (ft *FromTo) Bind(r *http.Request) error {
 	if ft.From == "" {
 		return errors.New("Missing 'from' (start) field")
@@ -34,11 +26,14 @@ func (ft *FromTo) Bind(r *http.Request) error {
 	return nil
 }
 
+// DirectionsRequest is sent to the MapQuest API
 type DirectionsRequest struct {
 	Locations []string                 `json:"locations"`
 	Options   DirectionsRequestOptions `json:"options"`
 }
 
+// DirectionsRequestOptions is the Options part of DirectionsRequest
+// Unused fields are commented out.
 type DirectionsRequestOptions struct {
 	// Avoids               []string `json:"avoids"`
 	// AvoidTimedConditions bool     `json:"avoidTimedConditions"`
@@ -54,6 +49,8 @@ type DirectionsRequestOptions struct {
 	// HighwayEfficiency    int      `json:"highwayEfficiency"`
 }
 
+// Directions is recieved as a response from the MapQuest API
+// Unused fields are commented out.
 type Directions struct {
 	Route struct {
 		// 	HasTollRoad       bool          `json:"hasTollRoad"`
@@ -199,6 +196,7 @@ type Directions struct {
 	} `json:"info"`
 }
 
+// Render ...
 func (dirs *Directions) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
