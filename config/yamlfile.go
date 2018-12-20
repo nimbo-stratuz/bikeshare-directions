@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
@@ -50,7 +51,7 @@ func (ec *yamlFileConfig) Get(key ...string) (string, error) {
 	case string:
 		return v, nil
 	case int:
-		return string(v), nil
+		return strconv.Itoa(v), nil
 	default:
 		return "", fmt.Errorf("Unsupported type")
 
