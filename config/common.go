@@ -15,10 +15,8 @@ type Config interface {
 
 // WritableConfig is an editable config source (supports method Put)
 type WritableConfig interface {
-	Close() error
+	Config
 	Put(string, interface{}) (interface{}, error)
-	Get(...string) (string, error)
-	GetInt(...string) (int, error)
 }
 
 // multiConfig represents a hierarchy of Configs
