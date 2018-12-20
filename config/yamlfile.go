@@ -81,7 +81,7 @@ func (ec *YamlFileConfig) getYamlValue(key ...string) (interface{}, error) {
 	var objPtr interface{}
 	objPtr = ec.yaml
 
-	for _, k := range key[:len(key)-1] {
+	for _, k := range key {
 		switch i := objPtr.(type) {
 		case yamlObject:
 			if val, ok := i[k]; ok {
@@ -94,16 +94,9 @@ func (ec *YamlFileConfig) getYamlValue(key ...string) (interface{}, error) {
 		}
 	}
 
-	k := key[len(key)-1]
-
-	if val, ok := objPtr.(yamlObject); ok {
-		fmt.Printf("1 %s, %+v\n", k, val)
-		if _, notok := val[k].(yamlObject); notok {
-			return "", fmt.Errorf("Not a final value: %s", fullKey)
-		}
-		return val[k], nil
-
+	// Check if current objPtr is a final value (not a nested object)
+	if _, notok := objPtr.(yamlObject); notok {
+		return "", fmt.Errorf("Not a final value: %s", fullKey)
 	}
-
-	return "", fmt.Errorf("Cannot access key %s in yaml file", fullKey)
+	return objPtr, nil
 }

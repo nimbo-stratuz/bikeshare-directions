@@ -1,9 +1,7 @@
 package config
 
 import (
-	"log"
 	"errors"
-	"strconv"
 	"strings"
 )
 
@@ -63,18 +61,11 @@ func (mc *MultiConfig) GetInt(key ...string) (int, error) {
 
 	for _, c := range mc.configs {
 		value, err := c.GetInt(key...)
-		if err, ok := err.(*strconv.NumError); ok {
-			// key found, but value is not an integer
-			return 0, err
-		}
-		if err != nil {
-			log.Println("MultiConfig.GetInt " + err.Error())
-		}
 		if err == nil {
 			// key found
 			return value, nil
 		}
 	}
 
-	return 0, errors.New("Key " + strings.Join(key, ".") + " not found")
+	return 0, errors.New("Key " + strings.Join(key, ".") + " not found or not an int value")
 }
