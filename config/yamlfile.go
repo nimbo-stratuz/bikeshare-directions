@@ -15,7 +15,7 @@ type yamlFileConfig struct {
 	yaml yamlObject
 }
 
-// NewyamlFileConfig New creates an yamlFileConfig instance
+// NewYamlFileConfig New creates an yamlFileConfig instance
 func NewYamlFileConfig(filePath string) (Config, error) {
 
 	yamlBytes, err := ioutil.ReadFile(filePath)
