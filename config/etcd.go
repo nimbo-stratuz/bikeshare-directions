@@ -19,7 +19,7 @@ type EtcdConfig struct {
 }
 
 // New creates an EtcdConfig instance
-func New(prefix string, conf etcd3.Config) (*EtcdConfig, error) {
+func NewEtcdConfig(prefix string, conf etcd3.Config) (*EtcdConfig, error) {
 
 	prefix = strings.TrimRight(prefix, "/") + "/"
 
@@ -106,7 +106,6 @@ func (ec *EtcdConfig) getEtcd(key string) (string, error) {
 
 	for _, ev := range resp.Kvs {
 		if string(ev.Key) == key {
-			log.Printf("Found key %s\n", string(ev.Key))
 			return string(ev.Value), nil
 		}
 	}

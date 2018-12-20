@@ -42,7 +42,7 @@ func Routes() *chi.Mux {
 
 func main() {
 
-	etcdConf, err := config.New(
+	etcdConf, err := config.NewEtcdConfig(
 		fmt.Sprintf("/%s/%s/", app, instanceID),
 		etcd3.Config{
 			Endpoints:   []string{getEnv("ETCD_URL", "localhost:2379")},
@@ -52,23 +52,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer etcdConf.Close()
 
-	if _, err := etcdConf.Put("/some/random/path", "1234"); err != nil {
+	envConf := config.NewEnvConfig()
+
+	multiConf := config.New(
+		etcdConf,
+		envConf,
+	)
+	defer multiConf.Close()
+
+	if _, err := etcdConf.Put("MAPS_API_KEY", "1234"); err != nil {
 		log.Fatal(err)
 	}
 
-	v1, err := etcdConf.Get("/some/random/path")
+	v1, err := multiConf.Get("MAPS_API_KEY")
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println(v1)
-
-	v2, err := etcdConf.GetInt("/some/random/path")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println(v2)
 
 	r := Routes()
 	log.Fatal(http.ListenAndServe(":"+getEnv("PORT", "8080"), r))
