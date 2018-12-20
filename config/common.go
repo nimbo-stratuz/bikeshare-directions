@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -45,19 +46,24 @@ func (mc *MultiConfig) Close() error {
 // Get returns a string value for the specified key
 func (mc *MultiConfig) Get(key ...string) (string, error) {
 
+	var errs []string
+
 	for _, c := range mc.configs {
 		value, err := c.Get(key...)
-		if err != nil {
+		if err == nil {
 			// key found
 			return value, nil
 		}
+		errs = append(errs, err.Error())
 	}
 
-	return "", errors.New("Key " + strings.Join(key, ".") + " not found")
+	return "", fmt.Errorf("Key not found: %s | Errors: [%s]", strings.Join(key, "."), strings.Join(errs, "; "))
 }
 
 // GetInt returns an int value for the specified key
 func (mc *MultiConfig) GetInt(key ...string) (int, error) {
+
+	var errs []string
 
 	for _, c := range mc.configs {
 		value, err := c.GetInt(key...)
@@ -65,7 +71,8 @@ func (mc *MultiConfig) GetInt(key ...string) (int, error) {
 			// key found
 			return value, nil
 		}
+		errs = append(errs, err.Error())
 	}
 
-	return 0, errors.New("Key " + strings.Join(key, ".") + " not found or not an int value")
+	return 0, fmt.Errorf("Key not found: %s | Errors: [%s]", strings.Join(key, "."), strings.Join(errs, "; "))
 }

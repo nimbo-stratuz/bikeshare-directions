@@ -81,16 +81,14 @@ func (ec *YamlFileConfig) getYamlValue(key ...string) (interface{}, error) {
 	var objPtr interface{}
 	objPtr = ec.yaml
 
-	for _, k := range key {
+	for idx, k := range key {
 		switch i := objPtr.(type) {
 		case yamlObject:
 			if val, ok := i[k]; ok {
 				objPtr = val
-			} else {
-				break
 			}
 		default:
-			break
+			return "", fmt.Errorf("Key not a YAML object: %s", strings.Join(key[0:idx], "."))
 		}
 	}
 
