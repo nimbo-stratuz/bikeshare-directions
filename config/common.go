@@ -13,25 +13,33 @@ type Config interface {
 	GetInt(...string) (int, error)
 }
 
-// MultiConfig represents a hierarchy of Configs
-type MultiConfig struct {
+// WritableConfig is an editable config source (supports method Put)
+type WritableConfig interface {
+	Close() error
+	Put(string, interface{}) (interface{}, error)
+	Get(...string) (string, error)
+	GetInt(...string) (int, error)
+}
+
+// multiConfig represents a hierarchy of Configs
+type multiConfig struct {
 	configs []Config
 }
 
 // New creates a new MultiConfig from the specified Configs
 // When querying the config, Configs are checked for the specified key
 // in the same order as they are specified here.
-func New(configs ...Config) (*MultiConfig, error) {
+func New(configs ...Config) (Config, error) {
 
 	if len(configs) <= 0 {
 		return nil, fmt.Errorf("At least one Config has to be provided")
 	}
 
-	return &MultiConfig{configs: configs}, nil
+	return &multiConfig{configs: configs}, nil
 }
 
 // Close closes all underlying Configs
-func (mc *MultiConfig) Close() error {
+func (mc *multiConfig) Close() error {
 
 	var errs []string
 
@@ -49,7 +57,7 @@ func (mc *MultiConfig) Close() error {
 }
 
 // Get returns a string value for the specified key
-func (mc *MultiConfig) Get(key ...string) (string, error) {
+func (mc *multiConfig) Get(key ...string) (string, error) {
 
 	var errs []string
 
@@ -66,7 +74,7 @@ func (mc *MultiConfig) Get(key ...string) (string, error) {
 }
 
 // GetInt returns an int value for the specified key
-func (mc *MultiConfig) GetInt(key ...string) (int, error) {
+func (mc *multiConfig) GetInt(key ...string) (int, error) {
 
 	var errs []string
 

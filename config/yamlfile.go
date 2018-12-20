@@ -10,13 +10,13 @@ import (
 
 type yamlObject map[interface{}]interface{}
 
-// YamlFileConfig is a client for reading env variables
-type YamlFileConfig struct {
+// yamlFileConfig is a client for reading env variables
+type yamlFileConfig struct {
 	yaml yamlObject
 }
 
-// NewYamlFileConfig New creates an YamlFileConfig instance
-func NewYamlFileConfig(filePath string) (*YamlFileConfig, error) {
+// NewyamlFileConfig New creates an yamlFileConfig instance
+func NewYamlFileConfig(filePath string) (Config, error) {
 
 	yamlBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -28,18 +28,18 @@ func NewYamlFileConfig(filePath string) (*YamlFileConfig, error) {
 		return nil, err
 	}
 
-	return &YamlFileConfig{
+	return &yamlFileConfig{
 		yaml: yamlMap,
 	}, nil
 }
 
-// Close does nothing for YamlFileConfig
-func (ec *YamlFileConfig) Close() error {
+// Close does nothing for yamlFileConfig
+func (ec *yamlFileConfig) Close() error {
 	return nil
 }
 
 // Get returns a string for the specified key
-func (ec *YamlFileConfig) Get(key ...string) (string, error) {
+func (ec *yamlFileConfig) Get(key ...string) (string, error) {
 
 	value, err := ec.getYamlValue(key...)
 	if err != nil {
@@ -58,7 +58,7 @@ func (ec *YamlFileConfig) Get(key ...string) (string, error) {
 }
 
 // GetInt returns a string for the specified key converted to a 32 bit integer
-func (ec *YamlFileConfig) GetInt(key ...string) (int, error) {
+func (ec *yamlFileConfig) GetInt(key ...string) (int, error) {
 
 	value, err := ec.getYamlValue(key...)
 	if err != nil {
@@ -74,7 +74,7 @@ func (ec *YamlFileConfig) GetInt(key ...string) (int, error) {
 	}
 }
 
-func (ec *YamlFileConfig) getYamlValue(key ...string) (interface{}, error) {
+func (ec *yamlFileConfig) getYamlValue(key ...string) (interface{}, error) {
 
 	fullKey := strings.ToLower(strings.Join(key, "."))
 

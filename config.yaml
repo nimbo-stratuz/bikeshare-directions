@@ -4,3 +4,7 @@ what:
   notthis: false 
   isnot: false
   this: nottree
+
+maps:
+  api:
+    key: APIKEY1208402FADFASDF

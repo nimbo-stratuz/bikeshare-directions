@@ -12,14 +12,14 @@ import (
 	etcd3 "go.etcd.io/etcd/clientv3"
 )
 
-// EtcdConfig is a client for communication with etcd
-type EtcdConfig struct {
+// etcdConfig is a client for communication with etcd
+type etcdConfig struct {
 	cli    *etcd3.Client
 	prefix string
 }
 
-// NewEtcdConfig creates an EtcdConfig instance
-func NewEtcdConfig(prefix string, conf etcd3.Config) (*EtcdConfig, error) {
+// NewEtcdConfig creates an etcdConfig instance
+func NewEtcdConfig(prefix string, conf etcd3.Config) (WritableConfig, error) {
 
 	prefix = strings.TrimRight(prefix, "/") + "/"
 
@@ -29,20 +29,21 @@ func NewEtcdConfig(prefix string, conf etcd3.Config) (*EtcdConfig, error) {
 		return nil, err
 	}
 
-	return &EtcdConfig{
+	return &etcdConfig{
 		cli:    etcdClient,
 		prefix: prefix,
 	}, nil
 }
 
 // Close closes the etcd client
-func (ec *EtcdConfig) Close() error {
-	log.Println("Closing EtcdConfig")
+func (ec *etcdConfig) Close() error {
+	log.Println("Closing etcdConfig")
 	return ec.cli.Close()
 }
 
 // Put a new key value pair into etcd instance
-func (ec *EtcdConfig) Put(k string, v interface{}) (interface{}, error) {
+// Not accessible (etcdConfig is not exported)
+func (ec *etcdConfig) Put(k string, v interface{}) (interface{}, error) {
 
 	err := ec.setEtcd(k, v)
 	if err != nil {
@@ -53,7 +54,7 @@ func (ec *EtcdConfig) Put(k string, v interface{}) (interface{}, error) {
 }
 
 // Get returns a string for the specified key
-func (ec *EtcdConfig) Get(k ...string) (string, error) {
+func (ec *etcdConfig) Get(k ...string) (string, error) {
 
 	stringValue, err := ec.getEtcd(k...)
 	if err != nil {
@@ -64,7 +65,7 @@ func (ec *EtcdConfig) Get(k ...string) (string, error) {
 }
 
 // GetInt returns a string for the specified key converted to a 32 bit integer
-func (ec *EtcdConfig) GetInt(k ...string) (int, error) {
+func (ec *etcdConfig) GetInt(k ...string) (int, error) {
 
 	stringValue, err := ec.getEtcd(k...)
 	if err != nil {
@@ -79,7 +80,7 @@ func (ec *EtcdConfig) GetInt(k ...string) (int, error) {
 	return int(intValue), nil
 }
 
-func (ec *EtcdConfig) setEtcd(key string, value interface{}) error {
+func (ec *etcdConfig) setEtcd(key string, value interface{}) error {
 
 	key = ec.prefix + strings.TrimLeft(key, "/")
 
@@ -93,7 +94,7 @@ func (ec *EtcdConfig) setEtcd(key string, value interface{}) error {
 	return nil
 }
 
-func (ec *EtcdConfig) getEtcd(key ...string) (string, error) {
+func (ec *etcdConfig) getEtcd(key ...string) (string, error) {
 
 	fullKey := strings.ToLower(strings.Join(key, "/"))
 	fullKey = ec.prefix + strings.TrimLeft(fullKey, "/")
