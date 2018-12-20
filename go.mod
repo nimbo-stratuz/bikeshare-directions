@@ -5,6 +5,7 @@ require (
 	github.com/go-chi/chi v3.3.3+incompatible
 	github.com/go-chi/render v1.0.1
 	github.com/gogo/protobuf v1.2.0 // indirect
+	github.com/google/uuid v1.1.0
 	go.etcd.io/etcd v3.3.10+incompatible
 	google.golang.org/grpc v1.17.0 // indirect
 )

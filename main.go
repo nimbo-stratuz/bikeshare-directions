@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +15,13 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+
+	"github.com/google/uuid"
+)
+
+var (
+	app        = "bikeshare-directions"
+	instanceID = uuid.New().String()
 )
 
 // Routes for /v1
@@ -34,13 +42,17 @@ func Routes() *chi.Mux {
 
 func main() {
 
-	etcdConf, err := config.New(etcd3.Config{
-		Endpoints:   []string{getEnv("ETCD_URL", "localhost:2379")},
-		DialTimeout: 5 * time.Second,
-	})
+	etcdConf, err := config.New(
+		fmt.Sprintf("/%s/%s/", app, instanceID),
+		etcd3.Config{
+			Endpoints:   []string{getEnv("ETCD_URL", "localhost:2379")},
+			DialTimeout: 5 * time.Second,
+		},
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer etcdConf.Close()
 
 	if _, err := etcdConf.Put("/some/random/path", "1234"); err != nil {
 		log.Fatal(err)

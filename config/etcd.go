@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	etcd3 "go.etcd.io/etcd/clientv3"
@@ -12,19 +14,31 @@ import (
 
 // EtcdConfig is a client for communication with etcd
 type EtcdConfig struct {
-	cli *etcd3.Client
+	cli    *etcd3.Client
+	prefix string
 }
 
 // New creates an EtcdConfig instance
-func New(conf etcd3.Config) (*EtcdConfig, error) {
+func New(prefix string, conf etcd3.Config) (*EtcdConfig, error) {
+
+	prefix = strings.TrimRight(prefix, "/") + "/"
+
 	var err error
 	etcdClient, err := etcd3.New(conf)
 	if err != nil {
 		return nil, err
 	}
-	// defer etcdClient.Close()
 
-	return &EtcdConfig{cli: etcdClient}, nil
+	return &EtcdConfig{
+		cli:    etcdClient,
+		prefix: prefix,
+	}, nil
+}
+
+// Close closes the etcd client
+func (ec *EtcdConfig) Close() error {
+	log.Println("Closing EtcdConfig")
+	return ec.cli.Close()
 }
 
 // Put a new key value pair into etcd instance
@@ -66,6 +80,9 @@ func (ec *EtcdConfig) GetInt(k string) (int, error) {
 }
 
 func (ec *EtcdConfig) setEtcd(key string, value interface{}) error {
+
+	key = ec.prefix + key
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	_, err := ec.cli.Put(ctx, key, fmt.Sprint(value))
 	cancel()
@@ -77,6 +94,8 @@ func (ec *EtcdConfig) setEtcd(key string, value interface{}) error {
 }
 
 func (ec *EtcdConfig) getEtcd(key string) (string, error) {
+
+	key = ec.prefix + key
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	resp, err := ec.cli.Get(ctx, key)
