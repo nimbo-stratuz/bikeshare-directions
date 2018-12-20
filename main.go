@@ -60,16 +60,19 @@ func main() {
 	}
 
 	multiConf := config.New(
-		envConf,  // highest priority
-		etcdConf, // lowest priority
+		// highest priority
+		envConf,
+		etcdConf,
+		// lowest priority
 	)
 	defer multiConf.Close()
 
-	if _, err := etcdConf.Put("MAPS_API_KEY", "1234"); err != nil {
+	if _, err := etcdConf.Put("maps/api/key", "1234"); err != nil {
 		log.Fatal(err)
 	}
 
-	v1, err := multiConf.Get("MAPS_API_KEY")
+	// maps.api.key
+	v1, err := multiConf.Get("maps", "api", "key")
 	if err != nil {
 		log.Fatal(err)
 	}

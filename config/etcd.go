@@ -53,9 +53,9 @@ func (ec *EtcdConfig) Put(k string, v interface{}) (interface{}, error) {
 }
 
 // Get returns a string for the specified key
-func (ec *EtcdConfig) Get(k string) (string, error) {
+func (ec *EtcdConfig) Get(k ...string) (string, error) {
 
-	stringValue, err := ec.getEtcd(k)
+	stringValue, err := ec.getEtcd(k...)
 	if err != nil {
 		return "", err
 	}
@@ -64,9 +64,9 @@ func (ec *EtcdConfig) Get(k string) (string, error) {
 }
 
 // GetInt returns a string for the specified key converted to a 32 bit integer
-func (ec *EtcdConfig) GetInt(k string) (int, error) {
+func (ec *EtcdConfig) GetInt(k ...string) (int, error) {
 
-	stringValue, err := ec.getEtcd(k)
+	stringValue, err := ec.getEtcd(k...)
 	if err != nil {
 		return 0, err
 	}
@@ -93,22 +93,23 @@ func (ec *EtcdConfig) setEtcd(key string, value interface{}) error {
 	return nil
 }
 
-func (ec *EtcdConfig) getEtcd(key string) (string, error) {
+func (ec *EtcdConfig) getEtcd(key ...string) (string, error) {
 
-	key = ec.prefix + strings.TrimLeft(key, "/")
+	fullKey := strings.ToLower(strings.Join(key, "/"))
+	fullKey = ec.prefix + strings.TrimLeft(fullKey, "/")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-	resp, err := ec.cli.Get(ctx, key)
+	resp, err := ec.cli.Get(ctx, fullKey)
 	cancel()
 	if err != nil {
 		return "", err
 	}
 
 	for _, ev := range resp.Kvs {
-		if string(ev.Key) == key {
+		if string(ev.Key) == fullKey {
 			return string(ev.Value), nil
 		}
 	}
 
-	return "", errors.New("key " + key + " not found")
+	return "", errors.New("key " + fullKey + " not found")
 }

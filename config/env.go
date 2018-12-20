@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // EnvConfig is a client for reading env variables
@@ -21,9 +22,9 @@ func (ec *EnvConfig) Close() error {
 }
 
 // Get returns a string for the specified key
-func (ec *EnvConfig) Get(k string) (string, error) {
+func (ec *EnvConfig) Get(key ...string) (string, error) {
 
-	stringValue, err := ec.getEnv(k)
+	stringValue, err := ec.getEnv(key...)
 	if err != nil {
 		return "", err
 	}
@@ -32,9 +33,9 @@ func (ec *EnvConfig) Get(k string) (string, error) {
 }
 
 // GetInt returns a string for the specified key converted to a 32 bit integer
-func (ec *EnvConfig) GetInt(k string) (int, error) {
+func (ec *EnvConfig) GetInt(key ...string) (int, error) {
 
-	stringValue, err := ec.getEnv(k)
+	stringValue, err := ec.getEnv(key...)
 	if err != nil {
 		return 0, err
 	}
@@ -47,12 +48,14 @@ func (ec *EnvConfig) GetInt(k string) (int, error) {
 	return int(intValue), nil
 }
 
-func (ec *EnvConfig) getEnv(key string) (string, error) {
+func (ec *EnvConfig) getEnv(key ...string) (string, error) {
 
-	value := os.Getenv(key)
+	fullKey := strings.ToUpper(strings.Join(key, "_"))
+
+	value := os.Getenv(fullKey)
 
 	if value == "" {
-		return "", errors.New("key " + key + " not found")
+		return "", errors.New("key " + fullKey + " not found")
 	}
 
 	return value, nil

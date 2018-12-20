@@ -8,8 +8,8 @@ import (
 // Config is a common interface that ensures basic methods
 type Config interface {
 	Close() error
-	Get(string) (string, error)
-	GetInt(string) (int, error)
+	Get(...string) (string, error)
+	GetInt(...string) (int, error)
 }
 
 // MultiConfig represents a hierarchy of Configs
@@ -43,29 +43,29 @@ func (mc *MultiConfig) Close() error {
 }
 
 // Get returns a string value for the specified key
-func (mc *MultiConfig) Get(key string) (string, error) {
+func (mc *MultiConfig) Get(key ...string) (string, error) {
 
 	for _, c := range mc.configs {
-		value, err := c.Get(key)
+		value, err := c.Get(key...)
 		if err == nil {
 			// key found
 			return value, nil
 		}
 	}
 
-	return "", errors.New("Key " + key + " not found")
+	return "", errors.New("Key " + strings.Join(key, ".") + " not found")
 }
 
 // GetInt returns an int value for the specified key
-func (mc *MultiConfig) GetInt(key string) (int, error) {
+func (mc *MultiConfig) GetInt(key ...string) (int, error) {
 
 	for _, c := range mc.configs {
-		value, err := c.GetInt(key)
+		value, err := c.GetInt(key...)
 		if err == nil {
 			// key found
 			return value, nil
 		}
 	}
 
-	return 0, errors.New("Key " + key + " not found")
+	return 0, errors.New("Key " + strings.Join(key, ".") + " not found")
 }
