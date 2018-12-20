@@ -81,7 +81,7 @@ func (ec *EtcdConfig) GetInt(k string) (int, error) {
 
 func (ec *EtcdConfig) setEtcd(key string, value interface{}) error {
 
-	key = ec.prefix + key
+	key = ec.prefix + strings.TrimLeft(key, "/")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	_, err := ec.cli.Put(ctx, key, fmt.Sprint(value))
@@ -95,7 +95,7 @@ func (ec *EtcdConfig) setEtcd(key string, value interface{}) error {
 
 func (ec *EtcdConfig) getEtcd(key string) (string, error) {
 
-	key = ec.prefix + key
+	key = ec.prefix + strings.TrimLeft(key, "/")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	resp, err := ec.cli.Get(ctx, key)
@@ -106,6 +106,7 @@ func (ec *EtcdConfig) getEtcd(key string) (string, error) {
 
 	for _, ev := range resp.Kvs {
 		if string(ev.Key) == key {
+			log.Printf("Found key %s\n", string(ev.Key))
 			return string(ev.Value), nil
 		}
 	}
