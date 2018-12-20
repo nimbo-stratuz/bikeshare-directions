@@ -41,9 +41,14 @@ func Routes() *chi.Mux {
 
 func main() {
 
+	yamlConf, err := config.NewYamlFileConfig("config.yaml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	envConf := config.NewEnvConfig()
 
-	etcdURL, err := envConf.Get("ETCD_URL")
+	etcdURL, err := envConf.Get("ETCD", "URL")
 	if err != nil {
 		log.Println("ETCD_URL not specified")
 	}
@@ -63,6 +68,7 @@ func main() {
 		// highest priority
 		envConf,
 		etcdConf,
+		yamlConf,
 		// lowest priority
 	)
 	defer multiConf.Close()
@@ -78,11 +84,17 @@ func main() {
 	}
 	log.Println(v1)
 
+	v2, err := multiConf.GetInt("what", "is", "this")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(v2)
+
 	r := Routes()
 
 	port, err := envConf.Get("PORT")
 	if err != nil {
-		log.Println("ETCD_URL not specified")
+		log.Println("PORT not specified")
 	}
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }

@@ -8,4 +8,5 @@ require (
 	github.com/google/uuid v1.1.0
 	go.etcd.io/etcd v3.3.10+incompatible
 	google.golang.org/grpc v1.17.0 // indirect
+	gopkg.in/yaml.v2 v2.2.2
 )
