@@ -21,8 +21,13 @@ type MultiConfig struct {
 // New creates a new MultiConfig from the specified Configs
 // When querying the config, Configs are checked for the specified key
 // in the same order as they are specified here.
-func New(configs ...Config) MultiConfig {
-	return MultiConfig{configs: configs}
+func New(configs ...Config) (*MultiConfig, error) {
+
+	if len(configs) <= 0 {
+		return nil, fmt.Errorf("At least one Config has to be provided")
+	}
+
+	return &MultiConfig{configs: configs}, nil
 }
 
 // Close closes all underlying Configs

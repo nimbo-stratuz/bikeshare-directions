@@ -64,13 +64,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	multiConf := config.New(
+	multiConf, err := config.New(
 		// highest priority
 		envConf,
 		etcdConf,
 		yamlConf,
 		// lowest priority
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer multiConf.Close()
 
 	if _, err := etcdConf.Put("maps/api/key", "1234"); err != nil {
