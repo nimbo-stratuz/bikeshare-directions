@@ -15,6 +15,7 @@ func NewEnvConfig() *EnvConfig {
 	return &EnvConfig{}
 }
 
+// Close does nothing for EnvConfig
 func (ec *EnvConfig) Close() error {
 	return nil
 }

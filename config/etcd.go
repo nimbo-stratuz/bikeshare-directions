@@ -18,7 +18,7 @@ type EtcdConfig struct {
 	prefix string
 }
 
-// New creates an EtcdConfig instance
+// NewEtcdConfig creates an EtcdConfig instance
 func NewEtcdConfig(prefix string, conf etcd3.Config) (*EtcdConfig, error) {
 
 	prefix = strings.TrimRight(prefix, "/") + "/"
