@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/config"
@@ -42,10 +41,17 @@ func Routes() *chi.Mux {
 
 func main() {
 
+	envConf := config.NewEnvConfig()
+
+	etcdURL, err := envConf.Get("ETCD_URL")
+	if err != nil {
+		log.Println("ETCD_URL not specified")
+	}
+
 	etcdConf, err := config.NewEtcdConfig(
 		fmt.Sprintf("/%s/%s/", app, instanceID),
 		etcd3.Config{
-			Endpoints:   []string{getEnv("ETCD_URL", "localhost:2379")},
+			Endpoints:   []string{etcdURL},
 			DialTimeout: 5 * time.Second,
 		},
 	)
@@ -53,11 +59,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	envConf := config.NewEnvConfig()
-
 	multiConf := config.New(
-		etcdConf,
-		envConf,
+		envConf,  // highest priority
+		etcdConf, // lowest priority
 	)
 	defer multiConf.Close()
 
@@ -72,15 +76,10 @@ func main() {
 	log.Println(v1)
 
 	r := Routes()
-	log.Fatal(http.ListenAndServe(":"+getEnv("PORT", "8080"), r))
-}
 
-func getEnv(k string, def string) string {
-	v := os.Getenv(k)
-
-	if v != "" {
-		return v
+	port, err := envConf.Get("PORT")
+	if err != nil {
+		log.Println("ETCD_URL not specified")
 	}
-
-	return def
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
