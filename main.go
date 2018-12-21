@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/config"
+	etcd2 "go.etcd.io/etcd/client"
 	etcd3 "go.etcd.io/etcd/clientv3"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/api"
@@ -53,6 +54,8 @@ func main() {
 		log.Println("ETCD_URL not specified")
 	}
 
+	log.Println(etcdURL)
+
 	etcdConf, err := config.NewEtcdConfig(
 		fmt.Sprintf("/%s/%s/", app, instanceID),
 		etcd3.Config{
@@ -64,9 +67,23 @@ func main() {
 		log.Fatal(err)
 	}
 
+	etcd2Conf, err := config.NewEtcd2Config(
+		"",
+		// fmt.Sprintf("/%s/%s/", app, instanceID),
+		etcd2.Config{
+			Endpoints:               []string{etcdURL},
+			Transport:               etcd2.DefaultTransport,
+			HeaderTimeoutPerRequest: time.Second,
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	multiConf, err := config.New(
 		// highest priority
 		envConf,
+		etcd2Conf,
 		etcdConf,
 		yamlConf,
 		// lowest priority
@@ -75,6 +92,18 @@ func main() {
 		log.Fatal(err)
 	}
 	defer multiConf.Close()
+
+	v5, err := etcd2Conf.Put("foo", "bar")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(v5)
+
+	v4, err := etcd2Conf.Get("foo")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(v4)
 
 	if _, err := etcdConf.Put("maps/api/key", "1234"); err != nil {
 		log.Fatal(err)
