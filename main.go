@@ -90,16 +90,12 @@ func main() {
 	if err != nil {
 		if err == context.Canceled {
 			log.Fatal("Etcd2Conf | Canceled: " + context.Canceled.Error())
-			// ctx is canceled by another routine
 		} else if err == context.DeadlineExceeded {
 			log.Fatal("Etcd2Conf | DeadlineExceeded: " + context.DeadlineExceeded.Error())
-			// ctx is attached with a deadline and it exceeded
 		} else if cerr, ok := err.(*etcd2.ClusterError); ok {
 			log.Fatal("Etcd2Conf | ClusterError: " + cerr.Error())
-			// process (cerr.Errors)
 		} else {
 			log.Fatal("Etcd2Conf | OTHER: " + err.Error())
-			// bad cluster endpoints, which are not etcd servers
 		}
 	}
 	log.Printf("GET: %v\n", v4)
@@ -116,6 +112,15 @@ func main() {
 	}
 	log.Println(v2)
 
+	time.Sleep(10 * time.Second)
+	// Change value for key /foo at this point
+
+	v7, err := multiConf.Get("foo")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(v7)
+
 	r := Routes()
 
 	port, err := startupConf.Get("port")
@@ -123,6 +128,4 @@ func main() {
 		log.Println("PORT not specified")
 	}
 	log.Fatal(http.ListenAndServe(":"+port, r))
-
-	time.Sleep(5 * time.Second)
 }

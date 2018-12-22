@@ -10,6 +10,8 @@ services:
       CONFIG_ETCD_URL: http://etcd:2379
     env_file:
       - docker-compose.env
+    depends_on:
+      - etcd
 
   etcd:
     image: quay.io/coreos/etcd
