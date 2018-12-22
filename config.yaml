@@ -9,8 +9,10 @@ config:
   etcd:
     url: http://localhost:2379
 
-port: '8080'
+port: 8080
 
 maps:
   api:
     key: APIKEY1208402FADFASDF
+
+foo: bar

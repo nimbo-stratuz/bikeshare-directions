@@ -86,7 +86,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	v4, err := etcd2Conf.Get("foo")
+	v4, err := multiConf.Get("foo")
 	if err != nil {
 		if err == context.Canceled {
 			log.Fatal("Etcd2Conf | Canceled: " + context.Canceled.Error())
@@ -95,7 +95,7 @@ func main() {
 		} else if cerr, ok := err.(*etcd2.ClusterError); ok {
 			log.Fatal("Etcd2Conf | ClusterError: " + cerr.Error())
 		} else {
-			log.Fatal("Etcd2Conf | OTHER: " + err.Error())
+			log.Fatal("MultiConf | OTHER: " + err.Error())
 		}
 	}
 	log.Printf("GET: %v\n", v4)
