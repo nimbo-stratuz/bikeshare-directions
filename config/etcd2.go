@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	etcd2 "go.etcd.io/etcd/client"
 )
@@ -15,12 +16,15 @@ type etcd2Config struct {
 	kapi etcd2.KeysAPI
 
 	watchedMutex *sync.Mutex
-	watched      map[string]string
+	watched      map[string]watch
 }
 
-func NewEtcd2Config(prefix string, conf etcd2.Config) (WritableConfig, error) {
+type watch struct {
+	value string
+	quit  chan bool
+}
 
-	prefix = strings.TrimRight(prefix, "/") + "/"
+func NewEtcd2Config(conf etcd2.Config) (WritableConfig, error) {
 
 	var err error
 	etcdClient, err := etcd2.New(conf)
@@ -28,18 +32,23 @@ func NewEtcd2Config(prefix string, conf etcd2.Config) (WritableConfig, error) {
 		return nil, err
 	}
 
-	keysAPI := etcd2.NewKeysAPIWithPrefix(etcdClient, prefix)
+	keysAPI := etcd2.NewKeysAPI(etcdClient)
 
 	return &etcd2Config{
 		kapi: keysAPI,
 
 		watchedMutex: &sync.Mutex{},
-		watched:      make(map[string]string),
+		watched:      make(map[string]watch),
 	}, nil
 }
 
 // Close closes the etcd client
 func (ec *etcd2Config) Close() error {
+
+	for _, wtch := range ec.watched {
+		wtch.quit <- true
+	}
+
 	return nil
 }
 
@@ -47,7 +56,7 @@ func (ec *etcd2Config) Close() error {
 // Not accessible (etcdConfig is not exported)
 func (ec *etcd2Config) Put(k string, v interface{}) (interface{}, error) {
 
-	err := ec.setEtcd(v, k)
+	err := ec.setEtcd(k, v)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +67,7 @@ func (ec *etcd2Config) Put(k string, v interface{}) (interface{}, error) {
 // Get returns a string for the specified key
 func (ec *etcd2Config) Get(k ...string) (string, error) {
 
-	stringValue, err := ec.getEtcd(k...)
+	stringValue, err := ec.getEtcd(genKey(k...))
 	if err != nil {
 		return "", err
 	}
@@ -69,7 +78,7 @@ func (ec *etcd2Config) Get(k ...string) (string, error) {
 // GetInt returns a string for the specified key converted to a 32 bit integer
 func (ec *etcd2Config) GetInt(k ...string) (int, error) {
 
-	stringValue, err := ec.getEtcd(k...)
+	stringValue, err := ec.getEtcd(genKey(k...))
 	if err != nil {
 		return 0, err
 	}
@@ -82,46 +91,43 @@ func (ec *etcd2Config) GetInt(k ...string) (int, error) {
 	return int(intValue), nil
 }
 
-func (ec *etcd2Config) setEtcd(value interface{}, key ...string) error {
-
-	fullKey := genKey(key...)
+func (ec *etcd2Config) setEtcd(key string, value interface{}) error {
 
 	ec.watchedMutex.Lock()
 
-	resp, err := ec.kapi.Set(context.Background(), fullKey, fmt.Sprint(value), nil)
+	resp, err := ec.kapi.Set(context.Background(), key, fmt.Sprint(value), nil)
 	if err != nil {
 		ec.watchedMutex.Unlock()
 		return err
-	} else {
-		// print common key info
-		log.Printf("Set is done. Metadata is %q\n", resp)
 	}
 
-	ec.watched[fullKey] = resp.Node.Value
+	log.Printf("Set is done. Metadata is %q\n", resp)
+
+	wtch := watch{
+		value: fmt.Sprint(value),
+		quit:  nil,
+	}
+	ec.watched[key] = wtch
 	ec.watchedMutex.Unlock()
 
 	return nil
 }
 
-func (ec *etcd2Config) getEtcd(key ...string) (string, error) {
-
-	fullKey := genKey(key...)
+func (ec *etcd2Config) getEtcd(key string) (string, error) {
 
 	// Check if the key is already watched
 	ec.watchedMutex.Lock()
-	val, ok := ec.watched[fullKey]
+	val, ok := ec.watched[key]
 	ec.watchedMutex.Unlock()
 
 	if ok {
-		return val, nil
+		return val.value, nil
 	}
 
-	watcher := ec.kapi.Watcher(fullKey, nil)
-
-	// Wait for initial value
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-	resp, err := watcher.Next(context.Background())
-	// cancel()
+	// Get initial value
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	resp, err := ec.kapi.Get(ctx, key, nil)
+	cancel()
 	if err != nil {
 		return "", err
 	}
@@ -129,29 +135,64 @@ func (ec *etcd2Config) getEtcd(key ...string) (string, error) {
 	initialValue := resp.Node.Value
 
 	ec.watchedMutex.Lock()
-	ec.watched[fullKey] = initialValue
+	wtch := watch{
+		value: initialValue,
+		quit:  make(chan bool),
+	}
+	ec.watched[key] = wtch
 	ec.watchedMutex.Unlock()
 
 	// Wait for changes and update ec.watched
-	go func() {
+	go func(quit chan bool) {
+		log.Println("Watching key " + key)
+		watcher := ec.kapi.Watcher(key, nil)
 		for {
-			resp, err := watcher.Next(context.Background())
-			if err != nil {
-				log.Printf("etcd2 Watch: %s\n", err.Error())
+			select {
+			case <-quit:
+				log.Println("Stopping watch for key " + key)
+				return
+			default:
+				// Create a context that will also timeout on <-quit
+				ctx := context.TODO()
+				ctx, cancel := context.WithCancel(ctx)
+				defer cancel()
+				go func() {
+					select {
+					case <-ctx.Done():
+					case <-quit:
+						cancel()
+					}
+				}()
+
+				resp, err := watcher.Next(ctx)
+				if err != nil {
+					if err == context.Canceled {
+						log.Printf("Canceled watch for key %s\n", key)
+					} else {
+						log.Printf("etcd2 Watch: %s\n", err.Error())
+					}
+					return
+				}
+
+				log.Printf("[Change: %s] Key: '%s' | Value: %s",
+					resp.Action, resp.Node.Key, resp.Node.Value)
+
+				ec.watchedMutex.Lock()
+				wtch := ec.watched[key]
+				wtch = watch{
+					value: resp.Node.Value,
+					quit:  wtch.quit,
+				}
+				ec.watched[key] = wtch
+				ec.watchedMutex.Unlock()
 			}
-
-			log.Printf("[Change: %s] Key: '%s' | Value: %s",
-				resp.Action, resp.Node.Key, resp.Node.Value)
-
-			ec.watchedMutex.Lock()
-			ec.watched[fullKey] = resp.Node.Value
-			ec.watchedMutex.Unlock()
 		}
-	}()
+	}(wtch.quit)
+	log.Println("Started the goroutine")
 
 	return initialValue, nil
 }
 
 func genKey(key ...string) string {
-	return "/" + strings.Join(key, "/")
+	return strings.Join(key, "/")
 }

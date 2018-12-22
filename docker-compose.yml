@@ -7,14 +7,14 @@ services:
       - 8088:8080
     environment:
       PORT: 8080
-      ETCD_URL: http://etcd:2379
+      CONFIG_ETCD_URL: http://etcd:2379
     env_file:
       - docker-compose.env
-  
+
   etcd:
     image: quay.io/coreos/etcd
     ports:
-    - 2379:2379
+      - 2379:2379
     command: >-
       /usr/local/bin/etcd
       -name node1

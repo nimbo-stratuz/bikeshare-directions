@@ -1,9 +1,15 @@
 what:
   is:
     this: -123
-  notthis: false 
+  notthis: false
   isnot: false
   this: nottree
+
+config:
+  etcd:
+    url: http://localhost:2379
+
+port: '8080'
 
 maps:
   api:

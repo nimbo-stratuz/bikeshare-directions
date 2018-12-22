@@ -1,14 +1,14 @@
 package main
 
+// v0.0.0
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/config"
 	etcd2 "go.etcd.io/etcd/client"
-	etcd3 "go.etcd.io/etcd/clientv3"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/api"
 
@@ -49,33 +49,27 @@ func main() {
 
 	envConf := config.NewEnvConfig()
 
-	etcdURL, err := envConf.Get("ETCD", "URL")
-	if err != nil {
-		log.Println("ETCD_URL not specified")
-	}
-
-	log.Println(etcdURL)
-
-	etcdConf, err := config.NewEtcdConfig(
-		fmt.Sprintf("/%s/%s/", app, instanceID),
-		etcd3.Config{
-			Endpoints:   []string{etcdURL},
-			DialTimeout: 5 * time.Second,
-		},
+	startupConf, err := config.New(
+		envConf,
+		yamlConf,
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	etcdURL, err := startupConf.Get("config", "etcd", "url")
+	if err != nil {
+		log.Fatal("config.etcd.url not specified")
+	}
+
 	etcd2Conf, err := config.NewEtcd2Config(
-		"",
-		// fmt.Sprintf("/%s/%s/", app, instanceID),
 		etcd2.Config{
 			Endpoints:               []string{etcdURL},
 			Transport:               etcd2.DefaultTransport,
 			HeaderTimeoutPerRequest: time.Second,
 		},
 	)
+	defer etcd2Conf.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,32 +78,32 @@ func main() {
 		// highest priority
 		envConf,
 		etcd2Conf,
-		etcdConf,
 		yamlConf,
 		// lowest priority
 	)
-	if err != nil {
-		log.Fatal(err)
-	}
 	defer multiConf.Close()
-
-	v5, err := etcd2Conf.Put("foo", "bar")
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(v5)
 
 	v4, err := etcd2Conf.Get("foo")
 	if err != nil {
-		log.Fatal(err)
+		if err == context.Canceled {
+			log.Fatal("Etcd2Conf | Canceled: " + context.Canceled.Error())
+			// ctx is canceled by another routine
+		} else if err == context.DeadlineExceeded {
+			log.Fatal("Etcd2Conf | DeadlineExceeded: " + context.DeadlineExceeded.Error())
+			// ctx is attached with a deadline and it exceeded
+		} else if cerr, ok := err.(*etcd2.ClusterError); ok {
+			log.Fatal("Etcd2Conf | ClusterError: " + cerr.Error())
+			// process (cerr.Errors)
+		} else {
+			log.Fatal("Etcd2Conf | OTHER: " + err.Error())
+			// bad cluster endpoints, which are not etcd servers
+		}
 	}
-	log.Println(v4)
+	log.Printf("GET: %v\n", v4)
 
-	if _, err := etcdConf.Put("maps/api/key", "1234"); err != nil {
-		log.Fatal(err)
-	}
-
-	// maps.api.key
 	v1, err := multiConf.Get("maps", "api", "key")
 	if err != nil {
 		log.Fatal(err)
@@ -124,9 +118,11 @@ func main() {
 
 	r := Routes()
 
-	port, err := envConf.Get("PORT")
+	port, err := startupConf.Get("port")
 	if err != nil {
 		log.Println("PORT not specified")
 	}
 	log.Fatal(http.ListenAndServe(":"+port, r))
+
+	time.Sleep(5 * time.Second)
 }
