@@ -176,10 +176,10 @@ func (ec *etcd2Config) getEtcd(key string) (string, error) {
 			if err != nil {
 				if err == context.Canceled {
 					log.Printf("Canceled watch for key %s\n", key)
+					return
 				} else {
 					log.Printf("etcd2 Watch: %s\n", err.Error())
 				}
-				return
 			}
 
 			log.Printf("[Change: %s] Key: '%s' | Value: %s",
