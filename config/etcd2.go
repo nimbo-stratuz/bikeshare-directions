@@ -42,7 +42,30 @@ func NewEtcd2Config(conf etcd2.Config) (WritableConfig, error) {
 	}, nil
 }
 
-// Close closes the etcd client
+func (ec *etcd2Config) getWatched(key string) (string, bool) {
+	ec.watchedMutex.Lock()
+	defer ec.watchedMutex.Unlock()
+
+	if val, ok := ec.watched[key]; ok {
+		return val.value, true
+	}
+
+	return "", false
+}
+
+func (ec *etcd2Config) setWatched(key string, value string) {
+	ec.watchedMutex.Lock()
+	defer ec.watchedMutex.Unlock()
+
+	wtch := ec.watched[key]
+	wtch = watch{
+		value: value,
+		quit:  wtch.quit,
+	}
+	ec.watched[key] = wtch
+}
+
+// Close closes the etcd client and stops all watches
 func (ec *etcd2Config) Close() error {
 
 	for _, wtch := range ec.watched {
@@ -116,12 +139,8 @@ func (ec *etcd2Config) setEtcd(key string, value interface{}) error {
 func (ec *etcd2Config) getEtcd(key string) (string, error) {
 
 	// Check if the key is already watched
-	ec.watchedMutex.Lock()
-	val, ok := ec.watched[key]
-	ec.watchedMutex.Unlock()
-
-	if ok {
-		return val.value, nil
+	if val, ok := ec.getWatched(key); ok {
+		return val, nil
 	}
 
 	// Get initial value
@@ -177,14 +196,7 @@ func (ec *etcd2Config) getEtcd(key string) (string, error) {
 				log.Printf("[Change: %s] Key: '%s' | Value: %s",
 					resp.Action, resp.Node.Key, resp.Node.Value)
 
-				ec.watchedMutex.Lock()
-				wtch := ec.watched[key]
-				wtch = watch{
-					value: resp.Node.Value,
-					quit:  wtch.quit,
-				}
-				ec.watched[key] = wtch
-				ec.watchedMutex.Unlock()
+				ec.setWatched(key, resp.Node.Value)
 			}
 		}
 	}(wtch.quit)

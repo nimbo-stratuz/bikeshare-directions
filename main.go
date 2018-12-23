@@ -41,6 +41,8 @@ func Routes() *chi.Mux {
 }
 
 func main() {
+	// Give it time to clean up
+	defer time.Sleep(2 * time.Second)
 
 	yamlConf, err := config.NewYamlFileConfig("config.yaml")
 	if err != nil {
@@ -69,7 +71,6 @@ func main() {
 			HeaderTimeoutPerRequest: time.Second,
 		},
 	)
-	defer etcd2Conf.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -112,7 +113,7 @@ func main() {
 	}
 	log.Println(v2)
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(3 * time.Second)
 	// Change value for key /foo at this point
 
 	v7, err := multiConf.Get("foo")
