@@ -75,6 +75,17 @@ func main() {
 		log.Fatal(err)
 	}
 
+	etcd2Conf.Put("foo1", "foo2")
+	etcd2Conf.Put("foo2", "foo3")
+	etcd2Conf.Put("foo3", "foo4")
+	etcd2Conf.Put("foo4", "end")
+
+	k1, _ := etcd2Conf.Get("foo1")
+	k2, _ := etcd2Conf.Get(k1)
+	k3, _ := etcd2Conf.Get(k2)
+	k4, _ := etcd2Conf.Get(k3)
+	etcd2Conf.Get(k4)
+
 	multiConf, err := config.New(
 		// highest priority
 		envConf,

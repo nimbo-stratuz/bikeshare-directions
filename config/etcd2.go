@@ -116,23 +116,16 @@ func (ec *etcd2Config) GetInt(k ...string) (int, error) {
 
 func (ec *etcd2Config) setEtcd(key string, value interface{}) error {
 
-	ec.watchedMutex.Lock()
-
-	resp, err := ec.kapi.Set(context.Background(), key, fmt.Sprint(value), nil)
+	_, err := ec.kapi.Set(context.Background(), key, fmt.Sprint(value), nil)
 	if err != nil {
-		ec.watchedMutex.Unlock()
 		return err
 	}
 
-	log.Printf("Set is done. Metadata is %q\n", resp)
-
-	wtch := watch{
-		value: fmt.Sprint(value),
-		quit:  nil,
+	// Call getEtcd to start a watch
+	_, err = ec.getEtcd(key)
+	if err != nil {
+		return err
 	}
-	ec.watched[key] = wtch
-	ec.watchedMutex.Unlock()
-
 	return nil
 }
 
@@ -162,45 +155,39 @@ func (ec *etcd2Config) getEtcd(key string) (string, error) {
 	ec.watchedMutex.Unlock()
 
 	// Wait for changes and update ec.watched
-	go func(quit chan bool) {
+	go func() {
 		log.Println("Watching key " + key)
 		watcher := ec.kapi.Watcher(key, nil)
 		for {
-			select {
-			case <-quit:
-				log.Println("Stopping watch for key " + key)
-				return
-			default:
-				// Create a context that will also timeout on <-quit
-				ctx := context.TODO()
-				ctx, cancel := context.WithCancel(ctx)
-				defer cancel()
-				go func() {
-					select {
-					case <-ctx.Done():
-					case <-quit:
-						cancel()
-					}
-				}()
-
-				resp, err := watcher.Next(ctx)
-				if err != nil {
-					if err == context.Canceled {
-						log.Printf("Canceled watch for key %s\n", key)
-					} else {
-						log.Printf("etcd2 Watch: %s\n", err.Error())
-					}
-					return
+			// Create a context that will also timeout on <-quit
+			ctx := context.TODO()
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			go func() {
+				select {
+				case <-ctx.Done():
+				case <-wtch.quit:
+					cancel()
 				}
+			}()
 
-				log.Printf("[Change: %s] Key: '%s' | Value: %s",
-					resp.Action, resp.Node.Key, resp.Node.Value)
-
-				ec.setWatched(key, resp.Node.Value)
+			// Wait for a change with the defined context
+			resp, err := watcher.Next(ctx)
+			if err != nil {
+				if err == context.Canceled {
+					log.Printf("Canceled watch for key %s\n", key)
+				} else {
+					log.Printf("etcd2 Watch: %s\n", err.Error())
+				}
+				return
 			}
+
+			log.Printf("[Change: %s] Key: '%s' | Value: %s",
+				resp.Action, resp.Node.Key, resp.Node.Value)
+
+			ec.setWatched(key, resp.Node.Value)
 		}
-	}(wtch.quit)
-	log.Println("Started the goroutine")
+	}()
 
 	return initialValue, nil
 }
