@@ -60,8 +60,8 @@ func New(instanceID string, cfg config.Config) (ServiceDiscovery, error) {
 
 func (d *discovery) Close() {
 	log.Println("Closing ServiceDiscovery")
-	d.Deregister()
 	d.refresherChan <- true
+	d.Deregister()
 }
 
 func (d *discovery) Register() {
