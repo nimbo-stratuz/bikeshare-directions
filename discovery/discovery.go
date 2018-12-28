@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/config"
@@ -155,17 +156,19 @@ func (d *discovery) Discover(name, env, version string) string {
 		return ""
 	}
 
-	// idx := rand.Intn(len(instances))
+	idx := rand.Intn(len(instances))
 
-	// url, err := d.etcd2Client.Get(instances[idx], "url")
-	// if err != nil {
-	// 	log.Println("Service discovery failed while getting url for " + instances[idx])
-	// 	return ""
-	// }
+	path := instances[idx] + "/url"
 
-	// return url
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	resp, err := d.kapi.Get(ctx, path, nil)
+	defer cancel()
+	if err != nil {
+		log.Printf("Cannot discover service %s | %s | %s: %s\n", name, env, version, err.Error())
+		return ""
+	}
 
-	return "url"
+	return resp.Node.Value
 }
 
 func (d *discovery) list(dir string) []string {
