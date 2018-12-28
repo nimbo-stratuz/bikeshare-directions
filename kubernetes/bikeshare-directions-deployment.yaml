@@ -16,8 +16,19 @@ spec:
       - image: nimbostratuz/bikeshare-directions:0.8
         name: bikeshare-directions
         env:
-        - name: PORT
+        # Server
+        - name: SERVER_PORT
           value: '8080'
+        - name: SERVER_BASEURL
+          value: http://159.122.186.143:31338
+
+        # Etcd
+        - name: CONFIG_ETCD_URL
+          value: http://etcd:2379
+        - name: DISCOVERY_ETCD_URL
+          value: http://etcd:2379
+
+        # API key
         - name: MAPS_API_KEY
           valueFrom:
             secretKeyRef:
