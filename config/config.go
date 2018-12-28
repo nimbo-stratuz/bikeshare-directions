@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -38,6 +39,8 @@ func New(configs ...Config) (Config, error) {
 
 // Close closes all underlying Configs
 func (mc *multiConfig) Close() error {
+
+	log.Println("Closing multiConfig")
 
 	var errs []string
 

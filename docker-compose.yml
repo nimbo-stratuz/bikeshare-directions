@@ -6,8 +6,10 @@ services:
     ports:
       - 8088:8080
     environment:
-      PORT: 8080
+      SERVER_PORT: 8080
+      SERVER_BASEURL: http://bikeshare-directions.service:8080
       CONFIG_ETCD_URL: http://etcd:2379
+      DISCOVERY_ETCD_URL: http://etcd:2379
     env_file:
       - docker-compose.env
     depends_on:

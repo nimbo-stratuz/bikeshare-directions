@@ -1,15 +1,19 @@
-what:
-  is:
-    this: -123
-  notthis: false
-  isnot: false
-  this: nottree
+env: dev
+name: bikeshare-directions
+version: 1.0.0
+
+server:
+  port: 8080
+  baseurl: http://localhost:8080
 
 config:
   etcd:
     url: http://localhost:2379
 
-port: 8080
+discovery:
+  etcd:
+    url: http://localhost:2379
+
 
 maps:
   api:
