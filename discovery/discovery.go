@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math"
 	"time"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/config"
@@ -27,8 +26,8 @@ type discovery struct {
 }
 
 var (
-	ttl     int = 10
-	refresh int = int(math.Ceil(float64(ttl) * 0.8))
+	ttl     = 10 * time.Second
+	refresh = ttl / 2
 )
 
 func New(instanceID string, cfg config.Config) (ServiceDiscovery, error) {
@@ -61,6 +60,7 @@ func New(instanceID string, cfg config.Config) (ServiceDiscovery, error) {
 func (d *discovery) Close() {
 	log.Println("Closing ServiceDiscovery")
 	d.Deregister()
+	d.refresherChan <- true
 }
 
 func (d *discovery) Register() {
@@ -76,7 +76,7 @@ func (d *discovery) Register() {
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 		_, err := d.kapi.Set(ctx, path, "", &etcd2.SetOptions{
-			TTL: time.Second * time.Duration(ttl),
+			TTL: ttl,
 			Dir: true,
 		})
 		defer cancel()
@@ -99,10 +99,36 @@ func (d *discovery) Register() {
 		}
 	}
 
-	// Refresh every ... seconds
-	{
+	// Keep refreshing
+	go func() {
+		log.Printf("Refreshing every %s\n", refresh)
+		for {
+			time.Sleep(refresh)
 
-	}
+			log.Println("Refreshing service in discovery")
+
+			path := d.genPathInstance()
+
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+			_, err := d.kapi.Set(ctx, path, "", &etcd2.SetOptions{
+				TTL:       ttl,
+				Dir:       true,
+				PrevExist: etcd2.PrevExist,
+			})
+			defer cancel()
+			if err != nil {
+				log.Fatal("Could not refresh service in service discovery", err)
+			}
+
+			select {
+			case <-d.refresherChan:
+				log.Println("No longer refreshing")
+				break
+			default:
+				continue
+			}
+		}
+	}()
 }
 
 func (d *discovery) Deregister() {

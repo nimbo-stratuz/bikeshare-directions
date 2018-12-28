@@ -2,7 +2,8 @@ package main
 
 // v0.0.0
 import (
-	"time"
+	"log"
+	"net/http"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/api"
 	"github.com/nimbo-stratuz/bikeshare-directions/service"
@@ -32,13 +33,11 @@ func main() {
 	defer service.Config.Close()
 	defer service.Discovery.Close()
 
-	// r := Routes()
+	r := Routes()
 
-	// port, err := service.Config.Get("server", "port")
-	// if err != nil {
-	// 	log.Println("PORT not specified")
-	// }
-	// log.Fatal(http.ListenAndServe(":"+port, r))
-
-	time.Sleep(10 * time.Second)
+	port, err := service.Config.Get("server", "port")
+	if err != nil {
+		log.Println("PORT not specified")
+	}
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
