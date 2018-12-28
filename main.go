@@ -40,8 +40,7 @@ func main() {
 	signal.Notify(exit, syscall.SIGINT)
 	go func() {
 		<-exit
-		service.Discovery.Close()
-		service.Config.Close()
+		service.Close()
 		os.Exit(0)
 	}()
 

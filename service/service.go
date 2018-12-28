@@ -27,6 +27,11 @@ func init() {
 	initDiscovery()
 }
 
+func Close() {
+	Discovery.Close()
+	Config.Close()
+}
+
 func initConfig() {
 	log.Println("Initializing Config")
 
