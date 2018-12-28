@@ -4,6 +4,9 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/api"
 	"github.com/nimbo-stratuz/bikeshare-directions/service"
@@ -30,8 +33,17 @@ func Routes() *chi.Mux {
 }
 
 func main() {
-	defer service.Config.Close()
-	defer service.Discovery.Close()
+
+	// Make sure application quits gracefully
+	exit := make(chan os.Signal)
+	signal.Notify(exit, syscall.SIGTERM)
+	signal.Notify(exit, syscall.SIGINT)
+	go func() {
+		<-exit
+		service.Discovery.Close()
+		service.Config.Close()
+		os.Exit(0)
+	}()
 
 	r := Routes()
 

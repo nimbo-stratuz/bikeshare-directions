@@ -104,29 +104,27 @@ func (d *discovery) Register() {
 	go func() {
 		log.Printf("Refreshing every %s\n", refresh)
 		for {
-			time.Sleep(refresh)
-
-			log.Println("Refreshing service in discovery")
-
-			path := d.genPathInstance()
-
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-			_, err := d.kapi.Set(ctx, path, "", &etcd2.SetOptions{
-				TTL:       ttl,
-				Dir:       true,
-				PrevExist: etcd2.PrevExist,
-			})
-			defer cancel()
-			if err != nil {
-				log.Fatal("Could not refresh service in service discovery", err)
-			}
-
 			select {
+
 			case <-d.refresherChan:
 				log.Println("No longer refreshing")
 				break
-			default:
-				continue
+
+			case <-time.After(refresh):
+				log.Println("Refreshing service in discovery")
+
+				path := d.genPathInstance()
+
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+				_, err := d.kapi.Set(ctx, path, "", &etcd2.SetOptions{
+					TTL:       ttl,
+					Dir:       true,
+					PrevExist: etcd2.PrevExist,
+				})
+				defer cancel()
+				if err != nil {
+					log.Fatal("Could not refresh service in service discovery", err)
+				}
 			}
 		}
 	}()
