@@ -11,10 +11,12 @@ import (
 	etcd2 "go.etcd.io/etcd/client"
 )
 
+// ServiceDiscovery is an interface for registering service with etcd
+// and discovering other services
 type ServiceDiscovery interface {
-	Register()
-	Discover(service, env, version string) string
-	Close()
+	Register()                                    // Register running service with etcd
+	Discover(service, env, version string) string // Discover url of some env/service/version
+	Close()                                       // Close stops refreshing TTL and deregisters the service
 }
 
 type discovery struct {
@@ -23,7 +25,7 @@ type discovery struct {
 	config config.Config
 	kapi   etcd2.KeysAPI
 
-	refresherChan chan bool
+	refresherChan chan bool // Write to this channel to stop refreshing
 }
 
 var (
@@ -31,6 +33,7 @@ var (
 	refresh = ttl / 2
 )
 
+// New creates a new ServiceDiscovery instance
 func New(instanceID string, cfg config.Config) (ServiceDiscovery, error) {
 
 	etcdURL, err := cfg.Get("discovery", "etcd", "url")
