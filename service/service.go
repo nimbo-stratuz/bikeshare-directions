@@ -1,8 +1,9 @@
 package service
 
 import (
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/google/uuid"
 	"github.com/nimbo-stratuz/bikeshare-directions/config"
@@ -81,13 +82,29 @@ func initConfig() {
 func initDiscovery() {
 	log.Println("Initializing Discovery")
 
-	var err error
-	Discovery, err = discovery.New(InstanceID, Config)
-	if err != nil {
-		log.Fatal(err)
+	// Initialize Discovery
+	{
+		var err error
+		Discovery, err = discovery.New(InstanceID, Config)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	Discovery.Register()
+	// Register the service
+	{
+		err := Discovery.Register()
+
+		for i := 0; i < 2 && err != nil; i++ {
+			log.Debugf("Retrying to register in 2 seconds... (Retry #%d)", i+1)
+			<-time.After(2 * time.Second)
+			err = Discovery.Register()
+		}
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	log.Println(Discovery.Discover("bikeshare-directions", "dev", "1.0.0"))
 }

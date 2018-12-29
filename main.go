@@ -2,11 +2,12 @@ package main
 
 // v0.0.0
 import (
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/api"
 	"github.com/nimbo-stratuz/bikeshare-directions/service"
@@ -33,6 +34,10 @@ func Routes() *chi.Mux {
 }
 
 func main() {
+
+	if env, err := service.Config.Get("env"); err != nil || env == "dev" {
+		log.SetLevel(log.DebugLevel)
+	}
 
 	// Make sure application quits gracefully
 	exit := make(chan os.Signal)

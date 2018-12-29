@@ -3,9 +3,13 @@ package discovery
 import (
 	"context"
 	"fmt"
-	"log"
+
+	"github.com/google/uuid"
+
 	"math/rand"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/config"
 	etcd2 "go.etcd.io/etcd/client"
@@ -14,9 +18,9 @@ import (
 // ServiceDiscovery is an interface for registering service with etcd
 // and discovering other services
 type ServiceDiscovery interface {
-	Register()                                    // Register running service with etcd
-	Discover(service, env, version string) string // Discover url of some env/service/version
-	Close()                                       // Close stops refreshing TTL and deregisters the service
+	Register() error                                       // Register running service with etcd
+	Discover(service, env, version string) (string, error) // Discover url of some env/service/version
+	Close()                                                // Close stops refreshing TTL and deregisters the service
 }
 
 type discovery struct {
@@ -38,7 +42,7 @@ func New(instanceID string, cfg config.Config) (ServiceDiscovery, error) {
 
 	etcdURL, err := cfg.Get("discovery", "etcd", "url")
 	if err != nil {
-		log.Fatal(err)
+		log.Panic("Service discovery misconfigured:", err)
 	}
 
 	etcd2Client, err := etcd2.New(
@@ -62,16 +66,16 @@ func New(instanceID string, cfg config.Config) (ServiceDiscovery, error) {
 }
 
 func (d *discovery) Close() {
-	log.Println("Closing ServiceDiscovery")
+	log.Info("Closing ServiceDiscovery")
 	d.refresherChan <- true
 	d.Deregister()
 }
 
-func (d *discovery) Register() {
+func (d *discovery) Register() error {
 
 	url, err := d.config.Get("server", "baseurl")
 	if err != nil {
-		log.Fatal(err)
+		log.Panic("Service discovery: baseurl not set. ", err)
 	}
 
 	// Create directory with TTL
@@ -85,8 +89,7 @@ func (d *discovery) Register() {
 		})
 		defer cancel()
 		if err != nil {
-			log.Fatal("Could not register service (create dir)", err)
-			return
+			return NewRegisterError(err.Error())
 		}
 	}
 
@@ -98,39 +101,69 @@ func (d *discovery) Register() {
 		_, err := d.kapi.Set(ctx, path, url, nil)
 		defer cancel()
 		if err != nil {
-			log.Fatal("Could not register service (set value)", err)
-			return
+			return NewRegisterError(err.Error())
 		}
 	}
 
 	// Keep refreshing
 	go func() {
-		log.Printf("Refreshing every %s\n", refresh)
+		refresherUUID := uuid.New().String()
+
+		log.Infof("Refreshing every %s [Refresher: %s]", refresh, refresherUUID)
+		defer log.Infof("No longer refreshing service [Refresher: %s]", refresherUUID)
+
 		for {
 			select {
 
 			case <-d.refresherChan:
-				log.Println("No longer refreshing")
 				break
 
 			case <-time.After(refresh):
-				log.Println("Refreshing service in discovery")
+				err := d.refresh()
+				log.Info(err)
 
-				path := d.genPathInstance()
-
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-				_, err := d.kapi.Set(ctx, path, "", &etcd2.SetOptions{
-					TTL:       ttl,
-					Dir:       true,
-					PrevExist: etcd2.PrevExist,
-				})
-				defer cancel()
+				// Retry loop
 				if err != nil {
-					log.Fatal("Could not refresh service in service discovery", err)
+					for i := 0; i < 5 && err != nil; i++ {
+						if etcd2.IsKeyNotFound(err) {
+							d.Register()
+							return
+						}
+
+						log.Warn(err.Error())
+						log.Warnf("Refreshing failed. Retrying in 2 seconds (Retry #%d)", i+1)
+						<-time.After(2 * time.Second)
+						err = d.refresh()
+					}
+
+					if err != nil {
+						log.Fatal("Cannot refresh service discovery")
+					}
 				}
 			}
 		}
 	}()
+
+	return nil
+}
+
+func (d *discovery) refresh() error {
+	log.Debug("Refreshing service in discovery")
+
+	path := d.genPathInstance()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	_, err := d.kapi.Set(ctx, path, "", &etcd2.SetOptions{
+		TTL:       ttl,
+		Dir:       true,
+		PrevExist: etcd2.PrevExist,
+	})
+	defer cancel()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *discovery) Deregister() {
@@ -149,12 +182,13 @@ func (d *discovery) Deregister() {
 	}
 }
 
-func (d *discovery) Discover(name, env, version string) string {
+func (d *discovery) Discover(name, env, version string) (string, error) {
 
-	instances := d.list(d.genPath())
-	if len(instances) <= 0 {
-		log.Println("Cannot discover service " + name)
-		return ""
+	instances, err := d.list(name, env, version)
+	if err != nil {
+		return "", NewDiscoverError(name, env, version, err.Error())
+	} else if len(instances) <= 0 {
+		return "", NewDiscoverError(name, env, version, "No instances registered")
 	}
 
 	idx := rand.Intn(len(instances))
@@ -165,48 +199,50 @@ func (d *discovery) Discover(name, env, version string) string {
 	resp, err := d.kapi.Get(ctx, path, nil)
 	defer cancel()
 	if err != nil {
-		log.Printf("Cannot discover service %s | %s | %s: %s\n", name, env, version, err.Error())
-		return ""
+		return "", NewDiscoverError(name, env, version, err.Error())
 	}
 
-	return resp.Node.Value
+	return resp.Node.Value, nil
 }
 
-func (d *discovery) list(dir string) []string {
+func (d *discovery) list(name, env, version string) ([]string, error) {
+
+	dir := fmt.Sprintf("/environments/%s/services/%s/%s/instances", env, name, version)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	resp, err := d.kapi.Get(ctx, dir, nil)
 	defer cancel()
-	if err != nil {
-		log.Println(err)
-		return []string{}
+
+	if etcd2.IsKeyNotFound(err) {
+		log.Warnf("No service %s|%s|%s registered", name, env, version)
+		return []string{}, nil
+	} else if err != nil {
+		return []string{}, err
 	}
 
 	keys := []string{}
-
-	log.Printf("%+v\n", resp.Node.Nodes)
 
 	for _, node := range resp.Node.Nodes {
 		keys = append(keys, node.Key)
 	}
 
-	return keys
+	return keys, nil
 }
 
 func (d *discovery) genPath() string {
 	env, err := d.config.Get("env")
 	if err != nil {
-		log.Fatal(err)
+		log.Panicln(err)
 	}
 
 	name, err := d.config.Get("name")
 	if err != nil {
-		log.Fatal(err)
+		log.Panicln(err)
 	}
 
 	version, err := d.config.Get("version")
 	if err != nil {
-		log.Fatal(err)
+		log.Panicln(err)
 	}
 
 	return fmt.Sprintf("/environments/%s/services/%s/%s/instances", env, name, version)
