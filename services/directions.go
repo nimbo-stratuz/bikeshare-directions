@@ -3,16 +3,18 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
+
+	"github.com/nimbo-stratuz/bikeshare-directions/service"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/models"
 )
 
 var (
-	url    = "https://www.mapquestapi.com/directions/v2/route?key=" + os.Getenv("MAPS_API_KEY")
+	url    = ""
 	client = &http.Client{
 		Timeout: time.Millisecond * 2500,
 	}
@@ -20,6 +22,15 @@ var (
 
 // DirectionsFromTo ...
 func DirectionsFromTo(from string, to string) models.Directions {
+
+	if url == "" {
+		apiKey, err := service.Config.Get("maps", "api", "key")
+		if err != nil {
+			log.Panicln("API key not set")
+		}
+
+		url = fmt.Sprintf("https://www.mapquestapi.com/directions/v2/route?key=%s", apiKey)
+	}
 
 	directionsBody := models.DirectionsRequest{
 		Locations: []string{from, to},
@@ -36,7 +47,7 @@ func DirectionsFromTo(from string, to string) models.Directions {
 
 	resp, err := client.Post(url, "application/json; charset=utf-8", body)
 	if err != nil {
-		log.Panicln("Could do POST to the maps API")
+		log.Panicln("Could not do POST to the maps API")
 	}
 	defer resp.Body.Close()
 

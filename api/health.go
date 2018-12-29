@@ -1,10 +1,12 @@
 package api
 
 import (
+	"fmt"
+	"log"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/render"
+	"github.com/nimbo-stratuz/bikeshare-directions/service"
 )
 
 // HealthCheckResponse is a microprofile-like /health response
@@ -29,7 +31,7 @@ type SubHealthCheck struct {
 }
 
 var (
-	url = "https://www.mapquestapi.com/directions/v2/route?key=" + os.Getenv("MAPS_API_KEY")
+	url = ""
 )
 
 const (
@@ -39,6 +41,16 @@ const (
 
 // HealthCheck is a basic Healthcheck
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
+
+	if url == "" {
+		apiKey, err := service.Config.Get("maps", "api", "key")
+		if err != nil {
+			log.Panicln("API key not set")
+		}
+
+		url = fmt.Sprintf("https://www.mapquestapi.com/directions/v2/route?key=%s", apiKey)
+	}
+
 	checks := []SubHealthCheck{
 		doMapQuestHealthCheck(),
 	}
