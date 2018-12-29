@@ -35,8 +35,9 @@ func Routes() *chi.Mux {
 
 func main() {
 
-	if env, err := service.Config.Get("env"); err != nil || env == "dev" {
-		log.SetLevel(log.DebugLevel)
+	if env, err := service.Config.Get("env"); err != nil || env == "prod" {
+		log.SetLevel(log.InfoLevel)
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 
 	// Make sure application quits gracefully

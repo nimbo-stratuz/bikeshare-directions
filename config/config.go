@@ -3,8 +3,9 @@ package config
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Config is a common interface that ensures basic methods
@@ -40,7 +41,7 @@ func New(configs ...Config) (Config, error) {
 // Close closes all underlying Configs
 func (mc *multiConfig) Close() error {
 
-	log.Println("Closing multiConfig")
+	log.Info("Closing multiConfig")
 
 	var errs []string
 

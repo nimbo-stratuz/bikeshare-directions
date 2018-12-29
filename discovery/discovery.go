@@ -73,6 +73,8 @@ func (d *discovery) Close() {
 
 func (d *discovery) Register() error {
 
+	log.Infof("Registering service with etcd. TTL=%s, refresh=%s", ttl, refresh)
+
 	url, err := d.config.Get("server", "baseurl")
 	if err != nil {
 		log.Panic("Service discovery: baseurl not set. ", err)
@@ -116,11 +118,10 @@ func (d *discovery) Register() error {
 			select {
 
 			case <-d.refresherChan:
-				break
+				return
 
 			case <-time.After(refresh):
 				err := d.refresh()
-				log.Info(err)
 
 				// Retry loop
 				if err != nil {
@@ -168,6 +169,8 @@ func (d *discovery) refresh() error {
 
 func (d *discovery) Deregister() {
 
+	log.Info("Deregistering service from etcd")
+
 	path := d.genPathInstance()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
@@ -177,12 +180,13 @@ func (d *discovery) Deregister() {
 	})
 	defer cancel()
 	if err != nil {
-		log.Fatal("Could not deregister service", err)
-		return
+		log.Warn("Could not deregister service", err)
 	}
 }
 
 func (d *discovery) Discover(name, env, version string) (string, error) {
+
+	log.Debugf("Discovering service %s|%s|%s", name, env, version)
 
 	instances, err := d.list(name, env, version)
 	if err != nil {
@@ -201,6 +205,8 @@ func (d *discovery) Discover(name, env, version string) (string, error) {
 	if err != nil {
 		return "", NewDiscoverError(name, env, version, err.Error())
 	}
+
+	log.Debugf("Discovered service %s|%s|%s: url %s", name, env, version, resp.Node.Value)
 
 	return resp.Node.Value, nil
 }

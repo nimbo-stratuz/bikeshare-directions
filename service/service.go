@@ -24,6 +24,7 @@ var (
 )
 
 func init() {
+	initLogging()
 	initConfig()
 	initDiscovery()
 }
@@ -31,6 +32,10 @@ func init() {
 func Close() {
 	Discovery.Close()
 	Config.Close()
+}
+
+func initLogging() {
+	log.SetLevel(log.DebugLevel)
 }
 
 func initConfig() {
@@ -106,5 +111,5 @@ func initDiscovery() {
 		}
 	}
 
-	log.Println(Discovery.Discover("bikeshare-directions", "dev", "1.0.0"))
+	Discovery.Discover("bikeshare-directions", "dev", "1.0.0")
 }
