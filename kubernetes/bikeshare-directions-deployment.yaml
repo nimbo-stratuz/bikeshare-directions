@@ -20,7 +20,7 @@ spec:
         - name: SERVER_PORT
           value: '8080'
         - name: SERVER_BASEURL
-          value: http://159.122.186.143:31338
+          value: http://159.122.186.200:31338
 
         # Etcd
         - name: CONFIG_ETCD_URL
