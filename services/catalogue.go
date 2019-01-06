@@ -11,6 +11,8 @@ import (
 	"github.com/nimbo-stratuz/bikeshare-directions/service"
 
 	"github.com/nimbo-stratuz/bikeshare-directions/models"
+
+	"github.com/go-chi/chi/middleware"
 )
 
 type BikeshareCatalogueService struct {
@@ -34,7 +36,7 @@ func NewBikeshareCatalogueService() BikeshareCatalogueService {
 }
 
 // DirectionsFromTo ...
-func (bc *BikeshareCatalogueService) ClosestBicycle(latitude, longitude float64) models.Bicycle {
+func (bc *BikeshareCatalogueService) ClosestBicycle(latitude, longitude float64, r *http.Request) models.Bicycle {
 
 	apiURL, err := url.Parse(bc.baseURL + "/v1/bicycles")
 	if err != nil {
@@ -48,7 +50,14 @@ func (bc *BikeshareCatalogueService) ClosestBicycle(latitude, longitude float64)
 
 	apiURL.RawQuery = query.Encode()
 
-	resp, err := bc.client.Get(apiURL.String())
+	req, err := http.NewRequest("GET", apiURL.String(), nil)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	req.Header.Set("X-Request-ID", fmt.Sprint(r.Context().Value(middleware.RequestIDKey)))
+
+	resp, err := bc.client.Do(req)
 	if err != nil {
 		log.Panic(err)
 	}

@@ -47,7 +47,7 @@ func findDirections(w http.ResponseWriter, r *http.Request) {
 	startLatitude := route.Route.Locations[0].LatLng.Lat
 	startLongitude := route.Route.Locations[0].LatLng.Lng
 
-	bicycle := catalogueAPI.ClosestBicycle(startLatitude, startLongitude)
+	bicycle := catalogueAPI.ClosestBicycle(startLatitude, startLongitude, r)
 
 	result := models.DirectionsWithBicycle{
 		Bicycle:    &bicycle,
