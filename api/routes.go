@@ -39,9 +39,22 @@ func findDirections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	route := services.DirectionsFromTo(fromTo.From, fromTo.To)
+	directionsAPI := services.NewMapQuestService()
+	catalogueAPI := services.NewBikeshareCatalogueService()
 
-	render.Render(w, r, &route)
+	route := directionsAPI.DirectionsFromTo(fromTo.From, fromTo.To)
+
+	startLatitude := route.Route.Locations[0].LatLng.Lat
+	startLongitude := route.Route.Locations[0].LatLng.Lng
+
+	bicycle := catalogueAPI.ClosestBicycle(startLatitude, startLongitude)
+
+	result := models.DirectionsWithBicycle{
+		Bicycle:    &bicycle,
+		Directions: &route,
+	}
+
+	render.Render(w, r, &result)
 }
 
 // ErrInvalidRequest creates an ErrResponse for 400 Bad Request

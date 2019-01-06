@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"net/http"
+	"time"
 )
 
 // FromTo represents incoming requests to /v1/directions. Example:
@@ -198,5 +199,32 @@ type Directions struct {
 
 // Render ...
 func (dirs *Directions) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+type Bicycle struct {
+	Available bool      `json:"available"`
+	DateAdded time.Time `json:"dateAdded"`
+	ID        int       `json:"id"`
+	Location  struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	} `json:"location"`
+	OwnerID       int    `json:"ownerId"`
+	SmartLockUUID string `json:"smartLockUUID"`
+}
+
+// Render ...
+func (b *Bicycle) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+type DirectionsWithBicycle struct {
+	Bicycle    *Bicycle    `json:"bicycle"`
+	Directions *Directions `json:"directions"`
+}
+
+// Render ...
+func (dwb *DirectionsWithBicycle) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }

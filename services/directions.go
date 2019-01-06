@@ -13,24 +13,29 @@ import (
 	"github.com/nimbo-stratuz/bikeshare-directions/models"
 )
 
-var (
-	url    = ""
-	client = &http.Client{
-		Timeout: time.Millisecond * 2500,
+type MapQuestService struct {
+	url    string
+	client *http.Client
+}
+
+func NewMapQuestService() MapQuestService {
+	apiKey, err := service.Config.Get("maps", "api", "key")
+	if err != nil {
+		log.Panicln("API key not set")
 	}
-)
+
+	url := fmt.Sprintf("https://www.mapquestapi.com/directions/v2/route?key=%s", apiKey)
+
+	return MapQuestService{
+		url: url,
+		client: &http.Client{
+			Timeout: time.Millisecond * 2500,
+		},
+	}
+}
 
 // DirectionsFromTo ...
-func DirectionsFromTo(from string, to string) models.Directions {
-
-	if url == "" {
-		apiKey, err := service.Config.Get("maps", "api", "key")
-		if err != nil {
-			log.Panicln("API key not set")
-		}
-
-		url = fmt.Sprintf("https://www.mapquestapi.com/directions/v2/route?key=%s", apiKey)
-	}
+func (mq *MapQuestService) DirectionsFromTo(from string, to string) models.Directions {
 
 	directionsBody := models.DirectionsRequest{
 		Locations: []string{from, to},
@@ -45,7 +50,7 @@ func DirectionsFromTo(from string, to string) models.Directions {
 		log.Panicln("Marshalling failed")
 	}
 
-	resp, err := client.Post(url, "application/json; charset=utf-8", body)
+	resp, err := mq.client.Post(mq.url, "application/json; charset=utf-8", body)
 	if err != nil {
 		log.Panicln("Could not do POST to the maps API")
 	}

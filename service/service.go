@@ -110,6 +110,22 @@ func initDiscovery() {
 			log.Fatal(err)
 		}
 	}
+}
 
-	Discovery.Discover("bikeshare-directions", "dev", "1.0.0")
+func GetName() string {
+	env, err := Config.Get("name")
+	if err != nil {
+		log.Panic("Name not set")
+	}
+
+	return env
+}
+
+func GetEnv() string {
+	env, err := Config.Get("env")
+	if err != nil {
+		log.Panic("Env not set")
+	}
+
+	return env
 }

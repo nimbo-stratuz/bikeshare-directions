@@ -28,3 +28,27 @@ services:
       -listen-peer-urls http://0.0.0.0:2380
       -initial-cluster node1=http://etcd:2380
       -cors="*"
+
+  bikeshare-catalogue.service:
+    image: nimbostratuz/bikeshare-catalogue:0.20
+    ports:
+      - 8080:8080
+    environment:
+      KUMULUZEE_SERVER_BASEURL: http://bikeshare-catalogue.service:8080
+      KUMULUZEE_DATASOURCES0_CONNECTIONURL: jdbc:postgresql://bikeshare-catalogue.db:5432/bikeshare-catalogue
+      KUMULUZEE_CONFIG_ETCD_HOSTS: http://etcd:2379
+      KUMULUZEE_DISCOVERY_ETCD_HOSTS: http://etcd:2379
+      KUMULUZEE_HEALTH_CHECKS_ETCDHEALTHCHECK_CONNECTIONURL: http://etcd:2379/health
+    depends_on:
+      - bikeshare-catalogue.db
+      - etcd
+
+  bikeshare-catalogue.db:
+    image: postgres:alpine
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bikeshare-catalogue
