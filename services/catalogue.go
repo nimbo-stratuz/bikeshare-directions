@@ -22,7 +22,7 @@ func NewBikeshareCatalogueService() BikeshareCatalogueService {
 
 	baseURL, err := service.Discovery.Discover("bikeshare-catalogue", service.GetEnv(), "1.0.0")
 	if err != nil {
-		log.Panicln("API key not set")
+		log.Panicln("Cannot discover bikeshare-catalogue")
 	}
 
 	return BikeshareCatalogueService{
