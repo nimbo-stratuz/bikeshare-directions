@@ -2,10 +2,13 @@ package main
 
 // v0.0.0
 import (
+	"context"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/google/uuid"
 
 	log "github.com/sirupsen/logrus"
 
@@ -17,6 +20,20 @@ import (
 	"github.com/go-chi/render"
 )
 
+func requestIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		ctx := r.Context()
+		if r.Header.Get("X-Request-ID") != "" {
+			ctx = context.WithValue(ctx, middleware.RequestIDKey, r.Header.Get("X-Request-ID"))
+		} else {
+			ctx = context.WithValue(ctx, middleware.RequestIDKey, uuid.New().String())
+		}
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 // Routes for /v1
 func Routes() *chi.Mux {
 	r := chi.NewRouter()
@@ -24,7 +41,7 @@ func Routes() *chi.Mux {
 	r.Use(
 		render.SetContentType(render.ContentTypeJSON),
 
-		middleware.RequestID,
+		requestIDMiddleware,
 		middleware.Logger,
 	)
 
