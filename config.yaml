@@ -3,8 +3,8 @@ name: bikeshare-directions
 version: 1.0.0
 
 server:
-  port: 8087
-  baseurl: http://localhost:8087
+  port: 8088
+  baseurl: http://localhost:8088
 
 config:
   etcd:
