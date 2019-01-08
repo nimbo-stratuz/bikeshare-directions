@@ -125,7 +125,11 @@ func DirectionsFromTo() http.HandlerFunc {
 			}
 			defer resp.Body.Close()
 
-			json.NewDecoder(resp.Body).Decode(&bycicle)
+			if err := json.NewDecoder(resp.Body).Decode(&bycicle); err != nil {
+				log.Println(err)
+				render.Render(w, r, ErrServerError())
+				return
+			}
 		}
 
 		render.Render(w, r, &models.DirectionsWithBicycle{
