@@ -13,7 +13,7 @@ spec:
         app: bikeshare-directions
     spec:
       containers:
-      - image: nimbostratuz/bikeshare-directions:0.11
+      - image: nimbostratuz/bikeshare-directions:0.12
         name: bikeshare-directions
         env:
         # Server
