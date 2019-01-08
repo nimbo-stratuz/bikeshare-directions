@@ -17,8 +17,6 @@ services:
 
   etcd:
     image: quay.io/coreos/etcd
-    ports:
-      - 2379:2379
     command: >-
       /usr/local/bin/etcd
       -name node1
@@ -30,9 +28,7 @@ services:
       -cors="*"
 
   bikeshare-catalogue.service:
-    image: nimbostratuz/bikeshare-catalogue:0.20
-    ports:
-      - 8080:8080
+    image: nimbostratuz/bikeshare-catalogue:0.21
     environment:
       KUMULUZEE_SERVER_BASEURL: http://bikeshare-catalogue.service:8080
       KUMULUZEE_DATASOURCES0_CONNECTIONURL: jdbc:postgresql://bikeshare-catalogue.db:5432/bikeshare-catalogue
@@ -46,8 +42,6 @@ services:
   bikeshare-catalogue.db:
     image: postgres:alpine
     restart: always
-    ports:
-      - 5432:5432
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

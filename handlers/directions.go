@@ -94,7 +94,7 @@ func DirectionsFromTo() http.HandlerFunc {
 				return
 			}
 
-			catalogueURL, err := url.Parse(catalogueURLString)
+			catalogueURL, err := url.Parse(catalogueURLString + "/v1/bicycles")
 			if err != nil {
 				log.Println(err)
 				render.Render(w, r, ErrServerError())
@@ -110,14 +110,18 @@ func DirectionsFromTo() http.HandlerFunc {
 
 			req, err := http.NewRequest("GET", catalogueURL.String(), nil)
 			if err != nil {
-				log.Panic(err)
+				log.Println(err)
+				render.Render(w, r, ErrServerError())
+				return
 			}
 
 			req.Header.Set("X-Request-ID", fmt.Sprint(r.Context().Value(middleware.RequestIDKey)))
 
 			resp, err := client.Do(req)
 			if err != nil {
-				log.Panic(err)
+				log.Println(err)
+				render.Render(w, r, ErrServerError())
+				return
 			}
 			defer resp.Body.Close()
 
